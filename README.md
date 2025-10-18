@@ -75,7 +75,7 @@
 ### 步驟
 1. **克隆 GitHub 倉庫**：
    ```bash
-   git clone https://github.com/your-repo/wms-oms-demo.git
+   git clone https://github.com/BpsEason/wms-oms-demo.git
    cd wms-oms-demo
    ```
 
