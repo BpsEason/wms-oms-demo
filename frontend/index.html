@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WMS/OMS 演示儀表板 (V5)</title>
+    <!-- 引入 Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind Config for Inter Font -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+            },
+          }
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <!-- 由於我們使用單一檔案，這裡直接引入 main.ts -->
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
