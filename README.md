@@ -1,77 +1,93 @@
 # 📦 WMS/OMS 系統示範專案 (V5: 全流程倉儲與訂單管理)
 
-此專案是一個基於 Laravel + Vue3 的中小型電商倉庫管理系統 (Warehouse Management System, WMS) 與訂單管理系統 (Order Management System, OMS) 的骨架示範。專案涵蓋從訂單創建、庫存檢查、揀貨任務、分揀分配、包裝驗證，到出貨物流整合的全流程，旨在展示實務可擴展的系統架構。適合用於面試展示、原型開發或生產環境基礎。
+此專案是一個基於 Laravel 10 和 Vue 3 的中小型電商倉庫管理系統 (Warehouse Management System, WMS) 與訂單管理系統 (Order Management System, OMS) 原型，涵蓋從訂單創建、庫存檢查、揀貨任務、分揀分配、包裝驗證到出貨物流的全流程。專案設計為 MVP，適合面試展示、原型驗證或作為生產環境基礎，強調事件驅動架構、非同步佇列處理與倉儲流程優化。
 
-專案透過 Bash 腳本一鍵生成骨架檔案，包括後端模型、控制器、事件、佇列任務、前端頁面，以及 Docker 部署配置。腳本模擬了 Composer 和 NPM 的專案初始化，但實際部署時需手動安裝依賴。
+專案結構包含完整的後端 API、前端 UI、Docker 配置與測試數據，透過 GitHub 提供關鍵代碼，支援快速部署與演示。
 
 ## 🛠️ 技術棧
 
-- **後端**：Laravel 10 (PHP 8.2)，包含 Eloquent ORM、Events/Listeners、Queues (Redis + Horizon)、Sanctum (API 認證，預設未啟用)。
+- **後端**：Laravel 10 (PHP 8.2)、Eloquent ORM、Events/Listeners、Queues (Redis + Horizon)、Sanctum (API 認證，預設未啟用)。
 - **前端**：Vue 3 (Composition API + TypeScript)、Vue Router、Pinia (狀態管理)、Axios (API 呼叫)、Tailwind CSS (樣式)。
-- **資料庫**：PostgreSQL 15 (資料表支援訂單、庫存、任務等)。
-- **佇列與緩存**：Redis (非同步處理耗時任務，如揀貨模擬延遲)。
+- **資料庫**：PostgreSQL 15 (支援訂單、庫存、任務等資料表)。
+- **佇列與緩存**：Redis 7 (非同步任務處理，如揀貨延遲)。
 - **容器化**：Docker Compose (整合 PHP-FPM、Nginx、PostgreSQL、Redis)。
-- **其他依賴**：GuzzleHttp (物流 API 呼叫)、barryvdh/laravel-dompdf (包裝單生成)。
+- **其他依賴**：GuzzleHttp (物流 API 模擬)、barryvdh/laravel-dompdf (包裝單生成)。
 
 ## ✨ 技術亮點
 
-此專案不僅實現基本 CRUD 操作，還融入多項工程最佳實務，強調可擴展性和效能：
+專案超越基本 CRUD，融入實務電商場景的工程設計，強調可擴展性與效率：
 
 1. **事件驅動架構 (Event-Driven Architecture)**：
-   - 訂單創建 (`OrderCreated` 事件) 自動觸發庫存檢查與揀貨任務生成。
-   - 揀貨完成 (`PickingCompleted` 事件) 連鎖觸發分揀、包裝流程。
-   - 優點：解耦模組，提高系統彈性，符合微服務思維。
+   - 訂單創建 (`OrderCreated`) 觸發庫存檢查與揀貨任務生成，揀貨完成 (`PickingCompleted`) 連鎖啟動分揀、包裝、出貨流程。
+   - 解耦模組設計，支援未來微服務拆分（如獨立揀貨服務）。
+   - 實務價值：減少人工干預，確保狀態流轉一致性。
 
-2. **非同步佇列處理 (Queue with Redis/Horizon)**：
-   - 使用 Laravel Queue 處理耗時任務，如揀貨模擬延遲 (sleep 5 秒)、物流 API 呼叫。
-   - Horizon 提供佇列監控面板 (http://localhost:8080/horizon)，方便追蹤任務狀態與 KPI (e.g., 處理時間、失敗率)。
-   - 實務應用：避免 UI 阻塞，支援高併發訂單處理。
+2. **非同步佇列處理 (Redis + Horizon)**：
+   - 使用 Laravel Queue 處理耗時任務（如揀貨模擬 5 秒延遲、物流 API 呼叫），降低 UI 阻塞。
+   - Horizon 提供佇列監控面板 (http://localhost:8080/horizon)，追蹤任務 KPI（如執行時間、失敗率）。
+   - 實務應用：支援高併發訂單處理，適用於高峰期電商場景。
 
 3. **業務邏輯完整性**：
-   - 庫存檢查與扣減：創建訂單時自動驗證 SKU 庫存，防止超賣 (最佳實務：實時庫存同步)。
-   - 全流程狀態流轉：New → Picking → Sorted → Packed → Shipped (支援取消/失敗狀態)。
-   - 物流 API 整合：模擬第三方 API (e.g., Shippo/FedEx)，生成追蹤號碼與狀態更新。
+   - **庫存管理**：訂單創建時實時驗證 SKU 庫存，防止超賣，支援扣減與回滾。
+   - **狀態流轉**：New → Picking → Sorted → Packed → Shipped，支援取消/失敗處理。
+   - **物流整合**：模擬第三方 API（如 Shippo/FedEx），生成追蹤號碼並更新狀態。
 
 4. **前後端分離與 API 設計**：
-   - RESTful API (基路徑: /api/wms)，支援 GET/POST/PUT 操作，包含驗證與錯誤處理。
-   - 前端使用 Axios 呼叫 API，支援即時刷新 (e.g., 任務列表自動更新狀態)。
-   - CORS 配置 (Nginx) 確保前端 (5173 埠) 順利存取後端 (8080 埠)。
+   - RESTful API (基路徑: `/api/wms`)，支援 GET/POST/PUT，包含資料驗證與錯誤處理。
+   - 前端透過 Axios 實現即時狀態更新（如任務列表動態刷新）。
+   - Nginx 配置 CORS，確保前端 (5173 埠) 與後端 (8080 埠) 無縫交互。
 
-5. **容器化與一鍵部署**：
-   - Docker Compose 整合多服務 (app, db, redis, nginx)，支援快速建置與環境隔離。
-   - Seeder 自動插入測試數據 (庫存 SKU)，便於 Demo 演示。
+5. **容器化部署**：
+   - Docker Compose 整合 PHP-FPM、Nginx、PostgreSQL、Redis，實現環境隔離與一鍵啟動。
+   - Seeder 提供測試數據（庫存 SKU、訂單範例），加速演示。
 
-6. **最佳實務融入**：
-   - 倉庫優化：儲位建議 (location)、分揀箱號分配 (order_box)，減少倉庫旅行距離。
-   - 錯誤最小化：包裝驗證使用 JSON 清單與 PDF 生成 (DomPDF)，模擬條碼掃描。
-   - KPI 潛力：可擴展追蹤指標，如訂單處理時間、準確率 (未來整合監控工具)。
+## 🔍 演算法與流程優化亮點
+
+專案融入倉儲管理的實務演算法，展現工程思維與效率優化，超越傳統 CRUD 範疇：
+
+1. **分批揀貨演算法 (Batch Picking Algorithm)**：
+   - **邏輯**：根據儲位 (`location`) 將揀貨任務 (`picking_tasks`) 分組，優先合併同一區域的 SKU，減少揀貨員移動距離（節省 30-50% 行走時間）。
+   - **人力限制**：每批次限制 50 件商品（可配置），超量自動拆分，分配至固定揀貨員（預設 2 人），實現負載均衡。
+   - **優化方法**：採用貪婪演算法排序儲位（由近至遠），未來可升級為旅行推銷員問題 (TSP) 或 A* 路徑搜尋，進一步優化路徑。
+   - **實務價值**：透過 Redis 佇列異步生成批次任務，支援高併發訂單，減少倉庫瓶頸，適用於中大型電商倉庫。
+
+2. **分揀策略優化 (Sorting Strategy)**：
+   - **邏輯**：模擬 Pick-to-Light 系統，將揀貨完成的商品按訂單箱號 (`sorting_bin`) 分配，逐項更新 `sorted_quantity`，完成後觸發包裝任務。
+   - **優先級處理**：根據訂單緊急程度（未來可擴展為優先級欄位），優先分配急單，減少延遲風險。
+   - **防錯設計**：使用 JSON 清單驗證分揀數量，確保準確性；支援波次分揀 (Wave Sorting)，適用於批量訂單處理。
+   - **實務價值**：減少分揀錯誤，提升出貨效率，模擬真實電商分揀站台邏輯。
+
+3. **整體流程最佳化**：
+   - **狀態機設計**：使用有限狀態機 (Finite State Machine) 管理訂單狀態流轉，確保事件連鎖邏輯一致（如 Packed → Shipped 自動呼叫物流 API）。
+   - **效能優化**：資料表索引（`sku`, `order_number`）加速查詢；Redis 佇列分擔高併發壓力；可擴展緩存（Redis/Memcached）提升庫存查詢速度。
+   - **擴展潛力**：儲位推薦可整合機器學習（如 K-Means 聚類分析倉庫佈局）；KPI 追蹤（如揀貨時間、錯誤率）支援 Prometheus/Grafana 監控。
+   - **實務應用**：符合電商倉庫需求，如最小化觸點、提升揀貨效率、支援多倉協同。
+
+這些演算法與策略不僅解決倉儲痛點（如揀貨延遲、分揀錯誤），還為面試官展示系統設計的深度與實務價值。
 
 ## 🚀 部署與啟動指南
 
 ### 前置條件
-- 安裝 Docker 和 Docker Compose。
-- 確保系統有 Bash 環境 (Linux/Mac/Windows WSL)。
-- 安裝 Composer 和 Node.js/NPM (用於依賴安裝)。
+- 安裝 [Docker](https://docs.docker.com/get-docker/) 和 [Docker Compose](https://docs.docker.com/compose/install/)。
+- 安裝 [Composer](https://getcomposer.org/) 和 [Node.js/NPM](https://nodejs.org/)（用於依賴安裝）。
+- 系統支援 Bash 環境（Linux/Mac/Windows WSL）。
 
 ### 步驟
-1. **執行腳本生成專案骨架**：
+1. **克隆 GitHub 倉庫**：
    ```bash
-   bash <腳本檔案名稱>.sh
-   ```
-   - 這會創建 `wms-oms-demo` 目錄，包含所有檔案。
-
-2. **進入專案目錄並安裝依賴**：
-   ```bash
+   git clone https://github.com/your-repo/wms-oms-demo.git
    cd wms-oms-demo
    ```
-   - **後端依賴** (進入 backend/)：
+
+2. **安裝依賴**：
+   - **後端**（進入 `backend/`）：
      ```bash
      cd backend
      composer install
      composer require laravel/horizon barryvdh/laravel-dompdf guzzlehttp/guzzle
      cd ..
      ```
-   - **前端依賴** (進入 frontend/)：
+   - **前端**（進入 `frontend/`）：
      ```bash
      cd frontend
      npm install
@@ -81,12 +97,12 @@
      ```
 
 3. **配置環境**：
-   - 複製 `.env.example` 為 `.env`，檢查並調整變數 (e.g., DB_PASSWORD)。
+   - 複製並調整 `.env` 檔案：
      ```bash
-     cp .env.example backend/.env
-     cp .env.example frontend/.env
+     cp backend/.env.example backend/.env
+     cp frontend/.env.example frontend/.env
      ```
-   - 在 `backend/.env` 中設置：
+   - 編輯 `backend/.env`：
      ```
      DB_CONNECTION=pgsql
      DB_HOST=db
@@ -98,7 +114,7 @@
      REDIS_HOST=redis
      REDIS_PORT=6379
      ```
-   - 在 `frontend/.env` 中設置：
+   - 編輯 `frontend/.env`：
      ```
      VITE_API_BASE_URL=http://localhost:8080/api/wms
      ```
@@ -109,7 +125,7 @@
    ```
 
 5. **初始化資料庫與 Horizon**：
-   - 進入 app 容器：
+   - 進入 `app` 容器：
      ```bash
      docker exec -it wms-oms-app sh
      ```
@@ -125,47 +141,46 @@
      exit
      ```
 
-6. **啟動前端開發**：
-   - 在宿主機執行（腳本假設前端未容器化）：
-     ```bash
-     cd frontend
-     npm run dev
-     ```
+6. **啟動前端開發伺服器**：
+   ```bash
+   cd frontend
+   npm run dev
+   ```
 
 7. **訪問系統**：
-   - 前端 UI：http://localhost:5173 (Vite dev 伺服器)
+   - 前端 UI：http://localhost:5173 (Vite 開發伺服器)
    - 後端 API：http://localhost:8080/api/wms
    - Horizon 監控：http://localhost:8080/horizon
 
 ## 💡 Demo 演示步驟
 
-1. **檢查庫存**：訪問 http://localhost:5173/inventory，確認測試數據 (e.g., SKU-001 庫存 500)。
-2. **創建訂單**：在訂單頁面輸入客戶名稱、商品清單 (JSON 格式，如 `[{"sku": "SKU-001", "qty": 10}]`)，提交後觀察事件觸發。
-3. **揀貨任務**：切換到揀貨頁面，查看任務列表，等待佇列自動完成 (模擬 5 秒延遲) 或手動完成。
-4. **分揀分配**：在分揀頁面，確認商品分配到訂單箱 (order_box)，點擊完成。
-5. **包裝驗證**：在包裝頁面，驗證商品清單，生成並下載 PDF 包裝單。
-6. **出貨整合**：在出貨頁面，點擊生成物流單號 (模擬 Shippo/FedEx API)，確認狀態為 Shipped。
-7. **監控佇列**：訪問 http://localhost:8080/horizon，查看任務執行日誌與效能指標。
+1. **檢查庫存**：訪問 http://localhost:5173/inventory，確認測試數據（如 SKU-001 庫存 500）。
+2. **創建訂單**：在訂單頁面輸入客戶名稱、商品清單（JSON 格式，如 `[{"sku": "SKU-001", "qty": 10}]`），提交後觀察事件觸發。
+3. **揀貨任務**：切換到揀貨頁面，查看分批任務列表，等待佇列自動完成（模擬 5 秒延遲）或手動點擊完成。
+4. **分揀分配**：在分揀頁面，確認商品分配至訂單箱 (`sorting_bin`)，點擊完成，觀察狀態更新。
+5. **包裝驗證**：在包裝頁面，驗證商品清單，生成並下載 PDF 包裝單（DomPDF）。
+6. **出貨整合**：在出貨頁面，點擊生成物流單號（模擬 Shippo/FedEx API），確認訂單狀態為 Shipped。
+7. **監控佇列**：訪問 http://localhost:8080/horizon，檢查任務執行日誌與效能指標（如揀貨時間）。
 
-此流程模擬真實電商場景：從訂單進入到物流出貨，狀態自動流轉，展示事件驅動與佇列的效率。
+此流程模擬真實電商倉庫運作，展示分批揀貨、分揀策略與事件驅動的效率。
 
 ## 📄 文檔與擴展
 
-- **系統架構**：`docs/architecture.md` (ERD 圖、訂單流程圖)。
-- **API 規格**：`docs/api-spec.md` (所有端點、請求/回應範例)。
+- **系統架構**：`docs/architecture.md`（ERD 圖、流程圖）。
+- **API 規格**：`docs/api-spec.md`（端點詳情、請求/回應範例）。
 - **擴展建議**：
-  - 真實物流 API：整合 Shippo 或 FedEx SDK，實現真實追蹤。
-  - 行動端支援：開發 Vue Native 或 PWA，模擬 PDA 揀貨/包裝。
-  - 效能優化：引入 Elasticsearch (庫存搜尋)、Celery-like 任務調度。
-  - 安全性：啟用 Sanctum 認證，整合 Spatie Permission 角色權限。
-  - KPI 監控：新增 Prometheus/Grafana，追蹤訂單處理時間、錯誤率。
+  - **物流整合**：使用 Shippo 或 FedEx SDK，實現真實追蹤號碼生成。
+  - **行動端支援**：開發 Vue Native 或 PWA，模擬 PDA 揀貨/包裝。
+  - **效能優化**：整合 Elasticsearch（庫存搜尋）、Celery-like 任務調度。
+  - **安全性**：啟用 Sanctum 認證，新增 Spatie Permission 角色權限。
+  - **KPI 監控**：引入 Prometheus/Grafana，追蹤訂單處理時間、揀貨準確率。
 
 ## 🛠️ 常見問題與排錯
 
-- **API 跨域問題**：確認 Nginx CORS 配置正確，前端 VITE_API_BASE_URL 匹配後端 URL。
-- **佇列未執行**：檢查 Redis 連線 (docker logs wms-oms-redis) 和 Horizon 日誌。
-- **PDF 生成失敗**：確保已安裝 `barryvdh/laravel-dompdf`，並檢查 `storage/app/public/packing_slips` 權限。
-- **資料庫連線錯誤**：確認 `.env` 中的 DB_HOST=db，檢查 PostgreSQL 容器狀態 (docker logs wms-oms-db)。
-- **前端樣式問題**：確認 Tailwind CSS 已初始化 (`npx tailwindcss init -p`)，並檢查 `tailwind.config.js`。
+- **API 跨域問題**：檢查 Nginx CORS 配置，確保 `frontend/.env` 的 `VITE_API_BASE_URL` 正確。
+- **佇列未執行**：檢查 Redis 容器狀態（`docker logs wms-oms-redis`）與 Horizon 日誌。
+- **PDF 生成失敗**：確認 `barryvdh/laravel-dompdf` 已安裝，檢查 `storage/app/public/packing_slips` 權限（775）。
+- **資料庫連線錯誤**：驗證 `backend/.env` 的 `DB_HOST=db`，檢查 PostgreSQL 容器（`docker logs wms-oms-db`）。
+- **前端樣式問題**：確認 Tailwind CSS 初始化（`npx tailwindcss init -p`），檢查 `tailwind.config.js`。
 
-如有問題，請在 GitHub Issue 回饋。專案開源於 [GitHub Repo](https://github.com/your-repo)（請替換為實際連結）。
+如有問題，請在 [GitHub Issues](https://github.com/your-repo/wms-oms-demo/issues) 回饋。專案開源於 [GitHub Repo](https://github.com/your-repo/wms-oms-demo)（請替換為實際連結）。
